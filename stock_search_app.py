@@ -1,18 +1,23 @@
-
 import streamlit as st
 import pandas as pd
 
 # Title
-st.title("Moteur de recherche pour le stock")
+st.title("Moteur de recherche optimisé pour le stock")
 
 uploaded_file = st.file_uploader("Importez votre fichier Excel", type=['xlsx'])
 
 if uploaded_file:
+    # Read only the 'Produktgruppekode' column to get the categories
+    categories = pd.read_excel(uploaded_file, usecols=["Produktgruppekode"])["Produktgruppekode"].unique().tolist()
+    
+    selected_category = st.selectbox("Sélectionnez une catégorie", categories)
+    
+    # Load the data for the selected category
     data = pd.read_excel(uploaded_file)
-    cleaned_data = data[(data["Kalkuleret Kostpris (RV)"].notna()) & (data["Lager.1"].notna()) & (data["Lager.1"] > 0)]
+    cleaned_data = data[(data["Kalkuleret Kostpris (RV)"].notna()) & (data["Lager.1"].notna()) & (data["Lager.1"] > 0) & (data["Produktgruppekode"] == selected_category)]
     
     # Search input
-    search_term = st.text_input("Entrez votre recherche (Beskrivelse, Nummer, or Produktgruppekode)")
+    search_term = st.text_input("Entrez votre recherche (Beskrivelse, Nummer)")
 
     # Filter by brand
     brands = st.multiselect("Choisissez une marque", options=cleaned_data["Producent Kode"].unique().tolist(), default=cleaned_data["Producent Kode"].unique().tolist())
@@ -24,7 +29,7 @@ if uploaded_file:
     filtered_data = cleaned_data[cleaned_data["Producent Kode"].isin(brands) & (cleaned_data["Kalkuleret Kostpris (RV)"] >= min_price) & (cleaned_data["Kalkuleret Kostpris (RV)"] <= max_price)]
 
     if search_term:
-        filtered_data = filtered_data[filtered_data["Beskrivelse.1"].str.contains(search_term, case=False) | filtered_data["Nummer"].str.contains(search_term, case=False) | filtered_data["Produktgruppekode"].str.contains(search_term, case=False)]
+        filtered_data = filtered_data[filtered_data["Beskrivelse.1"].str.contains(search_term, case=False) | filtered_data["Nummer"].str.contains(search_term, case=False)]
 
     # Display results
     for index, row in filtered_data.iterrows():
